@@ -1,0 +1,3 @@
+# Replace RIGHT_SERIAL and LEFT_SERIAL with your own unique USB serials.
+ACTION=="add|change", SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0d32", ATTRS{serial}=="RIGHT_SERIAL", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="odrive-right", GROUP="dialout", MODE="0660", ENV{ID_MM_DEVICE_IGNORE}="1"
+ACTION=="add|change", SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0d32", ATTRS{serial}=="LEFT_SERIAL", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="odrive-left", GROUP="dialout", MODE="0660", ENV{ID_MM_DEVICE_IGNORE}="1"

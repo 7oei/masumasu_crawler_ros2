@@ -1,0 +1,19 @@
+# Robot serial devices: match individual USB serials, never ttyACM numbers.
+# Observed 2026-09-20; ODrive roles confirmed against driver ASCII serial logs:
+# right: USB 335831653536, ASCII 564538788
+# left:  USB 365338553030, ASCII 597310552
+# Additional known serials are the original identities of these same boards.
+ACTION=="add|change", SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0d32", ATTRS{serial}=="335831653536|316F324C3431", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="odrive-right", GROUP="dialout", MODE="0660", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_PORT_IGNORE}="1"
+# Right board currently reports a malformed USB serial (ODrive Robotics).
+# ASCII serial 564538788 was verified on this physical port on 2026-09-20.
+# Keep this board on this port until its USB descriptors are repaired.
+# Restrict the fallback to the malformed serial so a normal left board cannot match.
+ACTION=="add|change", SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0d32", ATTRS{serial}=="ODrive Robotics", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:1:1.0", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="odrive-right", GROUP="dialout", MODE="0660", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_PORT_IGNORE}="1"
+ACTION=="add|change", SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0d32", ATTRS{serial}=="365338553030|3160325F3431", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="odrive-left", GROUP="dialout", MODE="0660", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_PORT_IGNORE}="1"
+# Left board also reports the malformed USB serial (ODrive Robotics).
+# ASCII serial 597310552 verified on USB port 4 on 2026-09-20.
+# Keep both boards on their verified ports; ttyACM numbers may change.
+ACTION=="add|change", SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="0d32", ATTRS{serial}=="ODrive Robotics", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:4:1.0", ENV{ID_USB_INTERFACE_NUM}=="00", SYMLINK+="odrive-left", GROUP="dialout", MODE="0660", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1", ENV{ID_MM_PORT_IGNORE}="1"
+
+# Permit driver recovery of these ODrive USB devices (USBDEVFS_RESET).
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="1209", ATTR{idProduct}=="0d32", GROUP="dialout", MODE="0660", TAG+="uaccess"
