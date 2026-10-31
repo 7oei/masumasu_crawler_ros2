@@ -69,7 +69,7 @@ def test_joy_loss_stops_without_slow_ramp(monkeypatch):
     assert msg.linear.x == msg.angular.z == 0.
 
 
-def test_activation_stays_zero_until_next_freshness_check():
+def test_activation_primes_requested_velocity_like_original_driver():
     d = driver(False)
     d.odrv0 = d.odrv1 = Mock()
     d.odrv0.read_float.return_value = 8
@@ -81,5 +81,5 @@ def test_activation_stays_zero_until_next_freshness_check():
     d.watchdog_test_enabled = True
     d.get_logger = Mock()
     Abot04TwistDriver._activate_odrives(d, .2, -.2)
-    assert all(call.args == (0., 0.) for call in d._write_track_velocities.call_args_list)
+    assert [call.args for call in d._write_track_velocities.call_args_list] == [(.2, -.2), (.2, -.2)]
     d._enable_watchdog_test.assert_called_once()

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from .odrive_paths import resolve_odrive_paths
 import fcntl
 from pathlib import Path
 import glob
@@ -344,8 +345,8 @@ class Abot04TwistDriver(Node):
             'waiting for first non-zero drive command')
 
     def _declare_parameters(self):
-        self.declare_parameter('odrive0_usb_path', '3-2')
-        self.declare_parameter('odrive1_usb_path', '3-4')
+        self.declare_parameter('odrive0_usb_path', 'auto')
+        self.declare_parameter('odrive1_usb_path', 'auto')
         self.declare_parameter('cmd_vel_timeout', 0.5)
         self.declare_parameter('ascii_timeout', 5.0)
         self.declare_parameter('ascii_query_retries', 2)
@@ -392,7 +393,7 @@ class Abot04TwistDriver(Node):
             self.get_parameter('odrive0_usb_path').value)
         self.odrv1_selector = str(
             self.get_parameter('odrive1_usb_path').value)
-        if self.odrv0_selector == self.odrv1_selector:
+        if self.odrv0_selector == self.odrv1_selector and self.odrv0_selector != 'auto':
             raise ValueError('ODrive USB paths must be different')
         self.ascii_timeout = float(
             self.get_parameter('ascii_timeout').value)
@@ -569,6 +570,18 @@ class Abot04TwistDriver(Node):
                 f'{self.odrv0_selector}, {self.odrv1_selector}')
             failed_selector = self.odrv0_selector
             try:
+                if 'auto' in (self.odrv0_selector, self.odrv1_selector):
+                    right, left = resolve_odrive_paths()
+                    if self.odrv0_selector == 'auto':
+                        self.odrv0_selector = right
+                    if self.odrv1_selector == 'auto':
+                        self.odrv1_selector = left
+                    failed_selector = self.odrv0_selector
+                    self.get_logger().info(
+                        f'Resolved ODrives: right={self.odrv0_selector}, '
+                        f'left={self.odrv1_selector}')
+                if self.odrv0_selector == self.odrv1_selector:
+                    raise ValueError('Resolved ODrive USB paths must be different')
                 odrv0 = ODriveAscii(
                     self.odrv0_selector, self.ascii_timeout,
                     self.ascii_query_retries,
@@ -737,9 +750,9 @@ class Abot04TwistDriver(Node):
                         f'read {timeout_readback:.9g}')
 
     def _activate_odrives(self, command_left_rps, command_right_rps):
-        # State/readback setup can block. Stay at zero throughout setup; the
-        # next control tick checks command age before applying any motion.
-        self._write_track_velocities(0.0, 0.0)
+        # Match the working robot: prime the command before closed-loop,
+        # then repeat it immediately after requesting the state transition.
+        self._write_track_velocities(command_left_rps, command_right_rps)
         for device, label in (
                 (self.odrv0, 'odrv0'), (self.odrv1, 'odrv1')):
             for axis in (0, 1):
@@ -747,7 +760,7 @@ class Abot04TwistDriver(Node):
                     f'{label} set axis{axis} closed-loop',
                     lambda device=device, axis=axis:
                     device.set_state(axis, AXIS_STATE_CLOSED_LOOP_CONTROL))
-        self._write_track_velocities(0.0, 0.0)
+        self._write_track_velocities(command_left_rps, command_right_rps)
 
         for device, label in (
                 (self.odrv0, 'odrv0'), (self.odrv1, 'odrv1')):
